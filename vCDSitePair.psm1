@@ -36,12 +36,11 @@ Function Get-vCloudSiteAssociations
     $members = $siteAssociationData.SiteAssociations.SiteAssociationMember
     if ($members.HasChildNodes) {
         Write-Host -ForegroundColor Green "Associated sites:"
-        foreach ($site in $members.SiteName) {
-            write-host -foregroundcolor green $site
-        }
+        Write-Host ($members.RestEndpoint)
      } else {
         Write-Host "No site associations found"
      }
+     return $members
 }
 
 # Function to pair two vCD sites - you must be connected to BOTH sites as a System context user for this to work
@@ -56,7 +55,6 @@ Function Invoke-vCDPairSites(
     } else {
         Write-Host -ForegroundColor Green 'Running in implementation mode, API changes will be committed'
     }
-
     [xml]$sALAD = Invoke-vCloud -URI "https://$siteAuri/api/site/associations/localAssociationData" -ApiVersion '29.0'
     $sAName = $sALAD.SiteAssociationMember.SiteName
     Write-Host -ForegroundColor Green "Site A returned site ID as: $($sALAD.SiteAssociationMember.SiteId)"
@@ -78,10 +76,12 @@ Function Invoke-vCDPairSites(
     }
 
     if (!$WhatIf) {
-        Write-Host -ForegroundColor Green "Associating $sAName with $sBName"
-        Invoke-vCloud -URI "https://$siteBuri/api/site/associations" -Method POST -Body $sALAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0'
-        Write-Host -ForegroundColor Green "Associating $sBName with $sAName"
-        Invoke-vCloud -URI "https://$siteAuri/api/site/associations" -Method POST -Body $sBLAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0'
+        Write-Host -ForegroundColor Green "Associating $sAName (Site A) with $sBName (Site B)"
+        $result = Invoke-vCloud -URI "https://$siteBuri/api/site/associations" -Method POST -Body $sALAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0' -WaitForTask $true
+        Write-Host "Returned Result = $result"
+        Write-Host -ForegroundColor Green "Associating $sBName (Site B) with $sAName (Site A)"
+        $result = Invoke-vCloud -URI "https://$siteAuri/api/site/associations" -Method POST -Body $sBLAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0' -WaitForTask $true
+        Write-Host "Returned Result = $result"
     } else {
         Write-Host -ForegroundColor Yellow "Not performing site association as running in information mode"
     }
