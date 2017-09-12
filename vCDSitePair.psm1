@@ -1,1 +1,93 @@
 # vCDSitePair.psm1
+
+# Function to return current vCloud Site Name (if any)
+Function Get-vCloudSiteName(
+    [Parameter(Mandatory=$true)][String]$siteDomain
+)
+{
+    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -ApiVersion '29.0'
+    return $localAssociationData.SiteAssociationMember.SiteName
+}
+
+Function Set-vCloudSiteName(
+    [Parameter(Mandatory=$true)][String]$siteDomain,
+    [Parameter(Mandatory=$true)][String]$siteName,
+    [Int]$Timeout = 30
+)
+{
+    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -ApiVersion '29.0'
+    $localAssociationData.SiteAssociationMember.SiteName = $siteName
+    $editURI = $localAssociationData.SiteAssociationMember.Link | Where-Object{ $_.rel -eq 'edit' }
+    $response = Invoke-vCloud -URI $editURI.href -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -Method Put -ApiVersion '29.0' -Body $localAssociationData.InnerXml -WaitForTask $true
+    return $response
+}
+
+# Function to list existing vCD site associations
+Function Get-vCloudSiteAssociations
+(
+    [Parameter(Mandatory=$true)][uri]$siteDomain
+)
+{
+    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -ApiVersion '29.0'
+    $sitename = $localAssociationData.SiteAssociationMember.SiteName
+    $siteid   = $localAssociationData.SiteAssociationMember.SiteId
+    Write-Host -ForegroundColor Green "Displaying site associations for site Id: $siteid with site Name: $sitename"
+    [xml]$siteAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations" -ApiVersion '29.0'
+    $members = $siteAssociationData.SiteAssociations.SiteAssociationMember
+    if ($members.HasChildNodes) {
+        Write-Host -ForegroundColor Green "Associated sites:"
+        foreach ($site in $members.SiteName) {
+            write-host -foregroundcolor green $site
+        }
+     } else {
+        Write-Host "No site associations found"
+     }
+}
+
+# Function to pair two vCD sites - you must be connected to BOTH sites as a System context user for this to work
+Function Invoke-vCDPairSites(
+    [Parameter(Mandatory=$true)][uri]$siteAuri,
+    [Parameter(Mandatory=$true)][uri]$siteBuri,
+    [Boolean]$WhatIf = $true
+)
+{
+    if ($WhatIf) { 
+        Write-Host -ForegroundColor Green 'Running in information mode only - no API changes will be made unless you run with -WhatIf $false'
+    } else {
+        Write-Host -ForegroundColor Green 'Running in implementation mode, API changes will be committed'
+    }
+
+    [xml]$sALAD = Invoke-vCloud -URI "https://$siteAuri/api/site/associations/localAssociationData" -ApiVersion '29.0'
+    $sAName = $sALAD.SiteAssociationMember.SiteName
+    Write-Host -ForegroundColor Green "Site A returned site ID as: $($sALAD.SiteAssociationMember.SiteId)"
+    Write-Host -ForegroundColor Green "Site A returned site name as: $sAName"
+
+    [xml]$sBLAD = Invoke-vCloud -URI "https://$siteBuri/api/site/associations/localAssociationData" -ApiVersion '29.0'
+    $sBName = $sBLAD.SiteAssociationMember.SiteName
+    Write-Host -ForegroundColor Green "Site B returned site ID as: $($sBLAD.SiteAssociationMember.SiteId)"
+    Write-Host -ForegroundColor Green "Site B returned site name as: $sBName"
+
+    If (!$sAName -or !$sBName) {
+        Write-Host -ForegroundColor Red "Site name is missing for one or more sites, configure with Set-vCloudSiteName before using vCD-PairSites, exiting"
+        return
+    }
+
+    If ($sALAD.SiteAssociationMember.SiteId -eq $sBLAD.SiteAssociationMember.SiteID) {
+        Write-Host -ForegroundColor Red "Site Id's for site A and site B are identical, vCD-PairSites must be used between different vCD Cells, exiting"
+        return
+    }
+
+    if (!$WhatIf) {
+        Write-Host -ForegroundColor Green "Associating $sAName with $sBName"
+        Invoke-vCloud -URI "https://$siteBuri/api/site/associations" -Method POST -Body $sALAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0'
+        Write-Host -ForegroundColor Green "Associating $sBName with $sAName"
+        Invoke-vCloud -URI "https://$siteAuri/api/site/associations" -Method POST -Body $sBLAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0'
+    } else {
+        Write-Host -ForegroundColor Yellow "Not performing site association as running in information mode"
+    }
+}
+
+Export-ModuleMember -Function 'Get-vCloudSiteName'
+Export-ModuleMember -Function 'Set-vCloudSiteName'
+Export-ModuleMember -Function 'Get-vCloudSiteAssociations'
+Export-ModuleMember -Function 'Invoke-vCDPairSites'
