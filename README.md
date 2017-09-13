@@ -45,9 +45,13 @@ Example:
 C:\PS> Set-vCloudSiteName -siteDomain 'siteA.my.cloud.com' -siteName 'SiteAlpha'
 
 Task submitted successfully, waiting for result
+
 q=queued, P=pre-running, .=Task Running:
+
 q.
+
 Task completed successfully
+
 True
 
 ## Get-vCloudSiteAssociations ##
@@ -68,7 +72,9 @@ Example:
 C:\PS> Get-vCloudSiteAssociations -siteDomain 'siteA.my.cloud.com'
 
 Displaying site associations for site Id: urn:vcloud:site:1234567-abcd-efab-cdef-0123456789ab with site Name: SiteA
+
 Associated sites:
+
 https://siteb.my.cloud.com/api
 
 ## Function Invoke-vCDPairSites ##
