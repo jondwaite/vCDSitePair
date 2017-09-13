@@ -87,7 +87,37 @@ Function Invoke-vCDPairSites(
     }
 }
 
+#Function to pair Organisations between vCD Sites
+Function Invoke-vCDPairOrgs(
+    [Parameter(Mandatory=$true)][string]$siteAuri,
+    [Parameter(Mandatory=$true)][string]$siteBuri,
+    [Parameter(Mandatory=$true)][string]$OrgName
+)
+{
+    Write-Host -ForegroundColor Green "Attempting to configure site pairing for Organisation $OrgName between vCD sites $siteAuri and $siteBuri"
+    # Check we can see the org in both sites:
+    $OrgA = Get-Org -Server $siteAuri -Name $OrgName -ErrorAction SilentlyContinue
+    $OrgB = Get-Org -Server $siteBuri -Name $OrgName -ErrorAction SilentlyContinue
+
+    if (!$OrgA) { Write-Warning "Could not match $OrgName in $siteAuri, exiting."; return $false }
+    if (!$OrgB) { Write-Warning "Could not match $OrgName in $siteBuri, exiting."; return $false }
+
+    # Retrieve the localAssociationData from each Site:
+    $SiteALAD = Invoke-vCloud -URI "$($OrgA.Href)/associations/localAssociationData" -ApiVersion '29.0'
+    $SiteBLAD = Invoke-vCloud -URI "$($OrgB.Href)/associations/localAssociationData" -ApiVersion '29.0'
+
+    # POST the associationData to the partner Site:
+    Write-Host -ForegroundColor Green "Associating $OrgName in $siteAuri (Site A) with $siteBuri (Site B)"
+    $result = Invoke-vCloud -URI "$($OrgA.Href)/associations" -Method POST -Body $SiteBLAD.InnerXML -ContentType 'application/vnd.vmware.admin.organizationAssociation+xml' -ApiVersion '29.0' -WaitForTask $true
+    Write-Host "Returned result = $result"
+    Write-Host -ForegroundColor Green "Associating $OrgName in $siteBuri (Site B) with $siteAuri (Site A)"
+    $result = Invoke-vCloud -URI "$($OrgB.Href)/associations" -Method POST -Body $SiteALAD.InnerXML -ContentType 'application/vnd.vmware.admin.organizationAssociation+xml' -ApiVersion '29.0' -WaitForTask $true
+    Write-Host "Returned result = $result"
+    return
+}
+
 Export-ModuleMember -Function 'Get-vCloudSiteName'
 Export-ModuleMember -Function 'Set-vCloudSiteName'
 Export-ModuleMember -Function 'Get-vCloudSiteAssociations'
 Export-ModuleMember -Function 'Invoke-vCDPairSites'
+Export-ModuleMember -Function 'Invoke-vCDPairOrgs'
