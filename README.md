@@ -71,7 +71,7 @@ Example:
 
 C:\PS> Get-vCloudSiteAssociations -siteDomain 'siteA.my.cloud.com'
 
-Displaying site associations for site Id: urn:vcloud:site:1234567-abcd-efab-cdef-0123456789ab with site Name: SiteA
+Displaying site associations for site Id: urn:vcloud:site:12345678-abcd-efab-cdef-0123456789ab with site Name: SiteA
 
 Associated sites:
 
@@ -82,11 +82,11 @@ This function creates a multisite relationship between two vCloud Director sites
 
 Parameters:
 
-Parameter   | Type    | Default | Required | Description
----------   | ------- | ------- | -------- | -----------
-siteADomain | String  | None    | Yes      | The FQDN of the first vCloud Site to be paired. Must match the IP address or DNS name used when connecting via Connect-CIServer.
-siteBDomain | String  | None    | Yes      | The FQDN of the second vCloud Site to be paired. Must match the IP address or DNS name used when connecting via Connect-CIServer.
-WhatIf      | Boolean | $true   | No       | Must be overridden and set to $false to actually attempt to perform the pairing operation.
+Parameter | Type    | Default | Required | Description
+--------- | ------- | ------- | -------- | -----------
+siteAuri  | String  | None    | Yes      | The FQDN of the first vCloud Site to be paired. Must match the IP address or DNS name used when connecting via Connect-CIServer.
+siteBuri  | String  | None    | Yes      | The FQDN of the second vCloud Site to be paired. Must match the IP address or DNS name used when connecting via Connect-CIServer.
+WhatIf    | Boolean | $true   | No       | Must be overridden and set to $false to actually attempt to perform the pairing operation.
 
 Output:
 
@@ -94,7 +94,7 @@ If 'WhatIf' is set to $false and the pairing operation is attempted, returns $tr
 
 Example:
 
-C:\PS> Invoke-vCDPairSites -siteADomain 'siteA.my.cloud.com' -siteBDomain 'siteB.my.cloud.com' -WhatIf $false
+C:\PS> Invoke-vCDPairSites -siteAuri 'siteA.my.cloud.com' -siteBuri 'siteB.my.cloud.com' -WhatIf $false
 
 Running in implementation mode, API changes will be committed
 
@@ -115,8 +115,6 @@ q=queued, P=pre-running, .=Task Running:
 q.
 
 Task completed successfully
-
-True
 
 Associating Site B (Site B) with Site A (Site A)
 
