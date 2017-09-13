@@ -77,8 +77,58 @@ Associated sites:
 
 https://siteb.my.cloud.com/api
 
-## Function Invoke-vCDPairSites ##
-Pairs two vCloud Director sites (System level)
+## Invoke-vCDPairSites ##
+This function creates a multisite relationship between two vCloud Director sites. This must be completed prior to attempting to pair any Organizations between the sites (see Invoke-vCDPairOrgs below). You must be connected to both sites as a user with 'System' level access (Connect-CIServer) prior to using this function or an error will be returned. Note that to actually perform the site pairing operation the 'WhatIf' parameter must be specified as $false.
 
-## Function Invoke-vCDPairOrgs ##
+Parameters:
+
+Parameter   | Type    | Default | Required | Description
+---------   | ------- | ------- | -------- | -----------
+siteADomain | String  | None    | Yes      | The FQDN of the first vCloud Site to be paired. Must match the IP address or DNS name used when connecting via Connect-CIServer.
+siteBDomain | String  | None    | Yes      | The FQDN of the second vCloud Site to be paired. Must match the IP address or DNS name used when connecting via Connect-CIServer.
+WhatIf      | Boolean | $true   | No       | Must be overridden and set to $false to actually attempt to perform the pairing operation.
+
+Output:
+
+If 'WhatIf' is set to $false and the pairing operation is attempted, returns $true if the operation completes successfully or $false otherwise.
+
+Example:
+
+C:\PS> Invoke-vCDPairSites -siteADomain 'siteA.my.cloud.com' -siteBDomain 'siteB.my.cloud.com' -WhatIf $false
+
+Running in implementation mode, API changes will be committed
+
+Site A returned site ID as: urn:vcloud:site:12345678-abcd-efab-cdef-0123456789ab
+
+Site A returned site name as: Site A
+
+Site B returned site ID as: urn:vcloud:site:87654321-dcba-bafe-fedc-bf9876543210
+
+Site B returned site name as: Site B
+
+Associating Site A (Site A) with Site B (Site B)
+
+Task submitted successfully, waiting for result
+
+q=queued, P=pre-running, .=Task Running:
+
+q.
+
+Task completed successfully
+
+True
+
+Associating Site B (Site B) with Site A (Site A)
+
+Task submitted successfully, waiting for result
+
+q=queued, P=pre-running, .=Task Running:
+
+q..
+
+Task completed successfully
+
+True
+
+## Invoke-vCDPairOrgs ##
 Pairs two vCloud Director Organizations (Org level)
