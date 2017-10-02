@@ -87,57 +87,7 @@ Function Invoke-vCDPairSites(
     }
 }
 
-# Function to list existing Organization associations
-Function Get-vCDOrgAssociations(
-    [Parameter(Mandatory=$true)][string]$siteDomain,    
-    [Parameter(Mandatory=$true)][string]$OrgName
-)
-{
-    $org = Get-Org -Server $siteDomain -Name $OrgName -ErrorAction SilentlyContinue
-    if (!$org) { Write-Warning "Could not match organization $OrgName in site $siteDomain, exiting."; return $false }
-    $result = Invoke-vCloud -URI "$($org.href)/associations" -ApiVersion '29.0'
-    return ($result.OrgAssociations.OrgAssociationMember)
-    # To decode the site ID's back to site names we'll need to check the site pairing RestEndpoint field(s) - which is only available in System context
-    # Do we care? If so we'll have to check whether we are in system context and only decode site Id back to site name if we are...
-}
-
-#Function to pair Organisations between vCD Sites
-Function Invoke-vCDPairOrgs(
-    [Parameter(Mandatory=$true)][string]$siteAuri,
-    [Parameter(Mandatory=$true)][string]$siteBuri,
-    [Parameter(Mandatory=$true)][string]$OrgName
-)
-{
-    Write-Host -ForegroundColor Green "Attempting to configure site pairing for Organisation $OrgName between vCD sites $siteAuri and $siteBuri"
-    # Check we can see the org in both sites:
-    $OrgA = Get-Org -Server $siteAuri -Name $OrgName -ErrorAction SilentlyContinue
-    $OrgB = Get-Org -Server $siteBuri -Name $OrgName -ErrorAction SilentlyContinue
-
-    if (!$OrgA) { Write-Warning "Could not match $OrgName in $siteAuri, exiting."; return $false }
-    if (!$OrgB) { Write-Warning "Could not match $OrgName in $siteBuri, exiting."; return $false }
-
-    # Retrieve the localAssociationData from each Site:
-    $siteALAuri = $OrgA.Href + '/associations/localAssociationData'
-    $siteAuri = $OrgA.Href + '/associations'
-    $siteBLAuri = $OrgB.Href + '/associations/localAssociationData'
-    $siteBuri = $OrgB.Href + '/associations'
-
-    [xml]$SiteALAD = Invoke-vCloud -URI $siteALAuri -ApiVersion '29.0'
-    [xml]$SiteBLAD = Invoke-vCloud -URI $siteBLAuri -ApiVersion '29.0'
-
-    # POST the associationData to the partner Site:
-    Write-Host -ForegroundColor Green "Associating $OrgName in $siteAuri (Site A) with $siteBuri (Site B)"
-    $result = Invoke-vCloud -URI $siteAuri -Method POST -Body $SiteBLAD.InnerXML -ContentType 'application/vnd.vmware.admin.organizationAssociation+xml' -ApiVersion '29.0' -WaitForTask $true
-    Write-Host "Returned result = $result"
-    Write-Host -ForegroundColor Green "Associating $OrgName in $siteBuri (Site B) with $siteAuri (Site A)"
-    $result = Invoke-vCloud -URI $siteBuri -Method POST -Body $SiteALAD.InnerXML -ContentType 'application/vnd.vmware.admin.organizationAssociation+xml' -ApiVersion '29.0' -WaitForTask $true
-    Write-Host "Returned result = $result"
-    return
-}
-
 Export-ModuleMember -Function 'Get-vCloudSiteName'
 Export-ModuleMember -Function 'Set-vCloudSiteName'
 Export-ModuleMember -Function 'Get-vCloudSiteAssociations'
 Export-ModuleMember -Function 'Invoke-vCDPairSites'
-Export-ModuleMember -Function 'Get-vCDOrgAssociations'
-Export-ModuleMember -Function 'Invoke-vCDPairOrgs'
