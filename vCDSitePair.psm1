@@ -39,7 +39,7 @@ Function Invoke-vCloud{
     [cmdletbinding()]Param(
     [Parameter(Mandatory)][uri]$URI,
     [string]$method = "get",
-    [string]$apiVersion = "29.0",
+    [string]$apiVersion = "34.0",
     [string]$body,
     [string]$contentType,
     [int]$timeout = 40,
@@ -139,7 +139,7 @@ not implemented in earlier versions.
         [Parameter(Mandatory=$true)][string]$siteDomain,
         [switch]$allowInsecure
     )
-    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -Method 'Get' -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -Method 'Get' -ApiVersion $apiVersion # -allowInsecure $allowInsecure
     return $localAssociationData.SiteAssociationMember.SiteName
 }
 
@@ -177,10 +177,10 @@ not implemented in earlier versions.
         [switch]$allowInsecure,
         [Int]$Timeout = 30
     )
-    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -Method 'Get' -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -Method 'Get' -ApiVersion $apiVersion  -allowInsecure $allowInsecure
     $localAssociationData.SiteAssociationMember.SiteName = $siteName
-    $editURI = $localAssociationData.SiteAssociationMember.Link | Where-Object{ $_.rel -eq 'edit' }
-    $response = Invoke-vCloud -URI $editURI.href -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -Method 'Put' -ApiVersion '29.0' -Body $localAssociationData.InnerXml -WaitForTask $true -allowInsecure $allowInsecure
+    $editURI = $localAssociationData.SiteAssociationMember.Link | Where-Object{ $_.rel -eq 'edit' } | ? type -eq "application/vnd.vmware.admin.siteAssociation+xml"
+    $response = Invoke-vCloud -URI $editURI.href -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -Method 'Put' -ApiVersion $apiVersion  -Body $localAssociationData.InnerXml -WaitForTask $true -allowInsecure $allowInsecure
     return $response
 }
 
@@ -216,11 +216,11 @@ not implemented in earlier versions.
         [switch]$allowInsecure,
         [Int]$Timeout = 30
     )
-    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -Method 'Get' -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$localAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations/localAssociationData" -Method 'Get' -ApiVersion $apiVersion  -allowInsecure $allowInsecure
     $sitename = $localAssociationData.SiteAssociationMember.SiteName
     $siteid   = $localAssociationData.SiteAssociationMember.SiteId
     Write-Host -ForegroundColor Green ("Site associations for site Id: $($siteid) with site Name: $($sitename)")
-    [xml]$siteAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations" -Method 'Get' -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$siteAssociationData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations" -Method 'Get' -ApiVersion $apiVersion  -allowInsecure $allowInsecure
     $members = $siteAssociationData.SiteAssociations.SiteAssociationMember
     if ($members.HasChildNodes) {
         Write-Host -ForegroundColor Green "Associated sites:"
@@ -274,7 +274,7 @@ not implemented in earlier versions.
     )
 
     # Get all current Site Association data into $SAData:
-    [xml]$SAData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations" -Method 'Get' -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$SAData = Invoke-vCloud -URI "https://$siteDomain/api/site/associations" -Method 'Get' -ApiVersion $apiVersion  -allowInsecure $allowInsecure
 
     # Add Namespace Manager to Site Association Data XML:
     $nsm = New-Object System.Xml.XmlNamespaceManager($SAData.NameTable)
@@ -292,7 +292,7 @@ not implemented in earlier versions.
         # And submit the modified XML back to the API:
         Invoke-vCloud -Uri "https://$siteDomain/api/site/associations" `
             -ContentType 'application/vnd.vmware.admin.siteAssociations+xml' `
-            -Method 'Put' -apiVersion '29.0' -Body $SAData.InnerXml `
+            -Method 'Put' -apiVersion $apiVersion  -Body $SAData.InnerXml `
             -waitForTask $true -allowInsecure $allowInsecure
         return
     } else {
@@ -343,12 +343,12 @@ API calls are not implemented in earlier versions.
         Write-Host -ForegroundColor Green 'Running in implementation mode, API changes will be committed'
     }
 
-    [xml]$sALAD = Invoke-vCloud -URI "https://$siteADomain/api/site/associations/localAssociationData" -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$sALAD = Invoke-vCloud -URI "https://$siteADomain/api/site/associations/localAssociationData" -ApiVersion $apiVersion  -allowInsecure $allowInsecure
     $sAName = $sALAD.SiteAssociationMember.SiteName
     Write-Host -ForegroundColor Green "Site A returned site ID as: $($sALAD.SiteAssociationMember.SiteId)"
     Write-Host -ForegroundColor Green "Site A returned site name as: $sAName"
 
-    [xml]$sBLAD = Invoke-vCloud -URI "https://$siteBDomain/api/site/associations/localAssociationData" -ApiVersion '29.0' -allowInsecure $allowInsecure
+    [xml]$sBLAD = Invoke-vCloud -URI "https://$siteBDomain/api/site/associations/localAssociationData" -ApiVersion $apiVersion  -allowInsecure $allowInsecure
     $sBName = $sBLAD.SiteAssociationMember.SiteName
     Write-Host -ForegroundColor Green "Site B returned site ID as: $($sBLAD.SiteAssociationMember.SiteId)"
     Write-Host -ForegroundColor Green "Site B returned site name as: $sBName"
@@ -365,10 +365,10 @@ API calls are not implemented in earlier versions.
 
     if (!$WhatIf) {
         Write-Host -ForegroundColor Green "Associating $sAName (Site A) with $sBName (Site B)"
-        $result = Invoke-vCloud -URI "https://$siteBDomain/api/site/associations" -Method POST -Body $sALAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0' -WaitForTask $true -allowInsecure $allowInsecure
+        $result = Invoke-vCloud -URI "https://$siteBDomain/api/site/associations" -Method POST -Body $sALAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion $apiVersion  -WaitForTask $true -allowInsecure $allowInsecure
         Write-Host "Returned Result = $result"
         Write-Host -ForegroundColor Green "Associating $sBName (Site B) with $sAName (Site A)"
-        $result = Invoke-vCloud -URI "https://$siteADomain/api/site/associations" -Method POST -Body $sBLAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion '29.0' -WaitForTask $true -allowInsecure $allowInsecure
+        $result = Invoke-vCloud -URI "https://$siteADomain/api/site/associations" -Method POST -Body $sBLAD.InnerXml -ContentType 'application/vnd.vmware.admin.siteAssociation+xml' -ApiVersion $apiVersion  -WaitForTask $true -allowInsecure $allowInsecure
         Write-Host "Returned Result = $result"
     } else {
         Write-Host -ForegroundColor Yellow "Not performing site association as running in information mode"
